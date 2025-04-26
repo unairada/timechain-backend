@@ -20,9 +20,9 @@ async def call_rpc(method: str, params: list = []):
             raise HTTPException(status_code=502, detail=data["error"])
         return data["result"]
 
-def to_sats_vbyte(feerate_btc_per_kb: float) -> float:
+# def to_sats_vbyte(feerate_btc_per_kb: float) -> float:
 
-    return feerate_btc_per_kb * 100000
+#     return feerate_btc_per_kb * 100000
 
 def main():
     print("Hello from timechain-backend!")
@@ -49,8 +49,8 @@ async def fee_estimate(blocks: int):
 
     return {
         "target_blocks" : result.get("blocks"),
-        "fee_btc_per_kb": feerate_btc_per_kb,
-        "fee_sats_per_vbyte": round(feerate_sats_per_vbyte)
+        "estimated_fee_BTC/vKb": feerate_btc_per_kb,
+        "estimated_fee_sats/vb": round(feerate_sats_per_vbyte)
     }
 
 if __name__ == "__main__":
