@@ -1,0 +1,57 @@
+import os
+from fastapi import FastAPI
+import httpx
+
+app = FastAPI()
+BLAST_RPC_URL = os.getenv("BLAST_RPC_URL", "https://bitcoin-mainnet.public.blastapi.io")
+
+async def call_rpc(method: str, params: list = []):
+    payload = {
+        "jsonrpc": "1.0",
+        "id": "fastapi",
+        "method": method,
+        "params": params
+    }
+    async with httpx.AsyncClient() as client: # asyncio to avoid blocking other incoming fastAPI requests
+        resp = await client.post(BLAST_RPC_URL, json=payload) 
+        resp.raise_for_status() # raise error if 400 of 500 HTTP status
+        data = resp.json()
+        if data.get("error"):
+            raise HTTPException(status_code=502, detail=data["error"])
+        return data["result"]
+
+def to_sats_vbyte(feerate_btc_per_kb: float) -> float:
+
+    return feerate_btc_per_kb * 100000
+
+def main():
+    print("Hello from timechain-backend!")
+
+@app.get("/")
+async def root():
+    return {"message": "Hello World"}
+
+@app.get("/fee-estimate/{blocks}")
+async def fee_estimate(blocks: int):
+    """
+    Estimate fee to confirm in `blocks` number of blocks,
+    returning sats/vByte instead of BTC/kB.
+    """
+    result = await call_rpc("estimatesmartfee", [blocks])
+    feerate_btc_per_kb = result.get("feerate")
+    if feerate_btc_per_kb is None:
+        # Response has "feerate": null 
+        raise HTTPException(status_code=404,
+                            detail=f"No fee estimate available for {blocks} blocks")
+    
+    #Convert BTC/vKByte to sats/vbyte
+    feerate_sats_per_vbyte = feerate_btc_per_kb * 100_000 # 1 btc = 100_000_000 sats and 1 kb = 1000 bytes
+
+    return {
+        "target_blocks" : result.get("blocks"),
+        "fee_btc_per_kb": feerate_btc_per_kb,
+        "fee_sats_per_vbyte": round(feerate_sats_per_vbyte)
+    }
+
+if __name__ == "__main__":
+    main()
