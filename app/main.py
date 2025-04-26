@@ -29,7 +29,7 @@ def main():
 
 @app.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "Hello World!"}
 
 @app.get("/fee-estimate/{blocks}")
 async def fee_estimate(blocks: int):
