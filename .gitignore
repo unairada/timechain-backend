@@ -11,3 +11,9 @@ wheels/
 
 # Terraform
 .terraform/
+
+# Linting
+.ruff*
+
+# todos
+todo.txt

@@ -10,11 +10,11 @@ BLAST_RPC_URL = os.getenv("BLAST_RPC_URL", "https://bitcoin-mainnet.public.blast
 async def call_rpc(method: str, params: list = []):
     payload = {
         "jsonrpc": "1.0",
-        "id": "fastapi",
+        "id": "timechain",
         "method": method,
         "params": params
     }
-    async with httpx.AsyncClient() as client: # asyncio to avoid blocking other incoming fastAPI requests
+    async with httpx.AsyncClient() as client: # AsyncClient uses asyncio in the background to avoid blocking other incoming fastAPI requests
         resp = await client.post(BLAST_RPC_URL, json=payload) 
         # resp.raise_for_status() # raise error if 400 of 500 HTTP status
         data = resp.json()
@@ -33,8 +33,8 @@ def main():
 async def root():
     return {"message": "Hello World!"}
 
-@app.get("/fee-estimate/{blocks}")
-async def fee_estimate(blocks: int):
+@app.get("/fee-estimate")
+async def fee_estimate(blocks: int=1):
     """
     Estimate fee to confirm in `blocks` number of blocks,
     returning sats/vByte instead of BTC/vkB.

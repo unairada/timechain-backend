@@ -20,7 +20,7 @@ data "aws_subnets" "default" {
 }
 
 # Security Group for the ALB (internet-facing)
-resource "aws_security_group" "alb" {
+resource "aws_security_group" "alb_sg" {
   name   = "alb-sg" # TODO: change name if desired
   vpc_id = data.aws_vpc.default.id
 
@@ -40,7 +40,7 @@ resource "aws_security_group" "alb" {
 }
 
 # Security Group for ECS tasks (only allow traffic from ALB)
-resource "aws_security_group" "ecs_task" {
+resource "aws_security_group" "ecs_task_sg" {
   name   = "ecs-task-sg" # TODO: change name if desired
   vpc_id = data.aws_vpc.default.id
 
@@ -48,7 +48,7 @@ resource "aws_security_group" "ecs_task" {
     from_port       = 80 # container port
     to_port         = 80
     protocol        = "tcp"
-    security_groups = [aws_security_group.alb.id]
+    security_groups = [aws_security_group.alb_sg.id]
   }
 
   egress {
@@ -61,7 +61,7 @@ resource "aws_security_group" "ecs_task" {
 
 # IAM Role for ECS Task Execution
 resource "aws_iam_role" "ecs_task_execution" {
-  name = "ecsTaskExecutionRole" # TODO: change if needed
+  name = "ecsTaskExecutionRole"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -81,12 +81,12 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_attach" {
 
 # ECS Cluster
 resource "aws_ecs_cluster" "main" {
-  name = "my-ecs-cluster" # TODO: change to your cluster name
+  name = "main-ecs-cluster"
 }
 
 # Task Definition (point to your ECR image)
-resource "aws_ecs_task_definition" "app" {
-  family                   = "my-app" # TODO: change
+resource "aws_ecs_task_definition" "timechain" {
+  family                   = "timechain"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = "256"
@@ -95,7 +95,7 @@ resource "aws_ecs_task_definition" "app" {
 
   container_definitions = jsonencode([
     {
-      name         = "my-app" # TODO: change
+      name         = "timechain-backend"
       image        = "${var.ecr_repository_url}:${var.image_tag}"
     #   image        = "782046927010.dkr.ecr.us-east-2.amazonaws.com/timechain-backend:e53a2be388ff9c319aac99b58a02aafa690cfc2a" # TODO: point to your ECR repo
       portMappings = [{ containerPort = 80, protocol = "tcp" }]
@@ -106,10 +106,10 @@ resource "aws_ecs_task_definition" "app" {
 
 # Application Load Balancer
 resource "aws_lb" "app" {
-  name               = "app-alb" # TODO: change
+  name               = "app-alb"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb.id]
+  security_groups    = [aws_security_group.alb_sg.id]
   subnets            = data.aws_subnets.default.ids
 }
 
@@ -144,22 +144,22 @@ resource "aws_lb_listener" "app" {
 }
 
 # ECS Service
-resource "aws_ecs_service" "app" {
-  name            = "my-app-service" # TODO: change
+resource "aws_ecs_service" "timechain" {
+  name            = "timechain-backend-service"
   cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.app.arn
+  task_definition = aws_ecs_task_definition.timechain.arn
   desired_count   = 1
   launch_type     = "FARGATE"
 
   network_configuration {
     subnets          = data.aws_subnets.default.ids
-    security_groups  = [aws_security_group.ecs_task.id]
+    security_groups  = [aws_security_group.ecs_task_sg.id]
     assign_public_ip = true
   }
 
   load_balancer {
     target_group_arn = aws_lb_target_group.app.arn
-    container_name   = "my-app" # must match container_definitions
+    container_name   = "timechain-backend" # must match container_definitions
     container_port   = 80
   }
 
