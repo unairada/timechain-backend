@@ -2,6 +2,7 @@ import os
 from fastapi import FastAPI, HTTPException
 import httpx
 
+
 # Initialize FastAPI constructor
 app = FastAPI()
 # Initialize endpoint URL
@@ -39,15 +40,15 @@ async def fee_estimate(blocks: int=1):
     Estimate fee to confirm in `blocks` number of blocks,
     returning sats/vByte instead of BTC/vkB.
     """
-    result = await call_rpc("estimatesmartfee", [blocks])
-    feerate_btc_per_kb = result.get("feerate")
+    result : dict = await call_rpc("estimatesmartfee", [blocks])
+    feerate_btc_per_kb : float = result.get("feerate")
     if feerate_btc_per_kb is None:
         # Response has "feerate": null 
         raise HTTPException(status_code=404,
                             detail=f"No fee estimate available for {blocks} blocks")
     
     #Convert BTC/vKByte to sats/vbyte
-    feerate_sats_per_vbyte = feerate_btc_per_kb * 100_000 # 1 btc = 100_000_000 sats and 1 kb = 1000 bytes
+    feerate_sats_per_vbyte : float = feerate_btc_per_kb * 100_000 # 1 btc = 100_000_000 sats and 1 kb = 1000 bytes
 
     return {
         "target_blocks" : result.get("blocks"),

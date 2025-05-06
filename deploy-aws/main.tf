@@ -41,7 +41,7 @@ resource "aws_security_group" "alb_sg" {
 
 # Security Group for ECS tasks (only allow traffic from ALB)
 resource "aws_security_group" "ecs_task_sg" {
-  name   = "ecs-task-sg" # TODO: change name if desired
+  name   = "timechain-backend-sg" # TODO: change name if desired
   vpc_id = data.aws_vpc.default.id
 
   ingress {
@@ -61,7 +61,7 @@ resource "aws_security_group" "ecs_task_sg" {
 
 # IAM Role for ECS Task Execution
 resource "aws_iam_role" "ecs_task_execution" {
-  name = "ecsTaskExecutionRole"
+  name = "Timechain-Backend-ECS-Exec-Role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -105,8 +105,8 @@ resource "aws_ecs_task_definition" "timechain" {
 }
 
 # Application Load Balancer
-resource "aws_lb" "app" {
-  name               = "app-alb"
+resource "aws_lb" "timechain-backend" {
+  name               = "timechain-backend-alb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb_sg.id]
@@ -114,8 +114,8 @@ resource "aws_lb" "app" {
 }
 
 # Target Group for ECS
-resource "aws_lb_target_group" "app" {
-  name        = "app-tg" # TODO: change
+resource "aws_lb_target_group" "timechain-backend" {
+  name        = "timechain-backend-tg"
   port        = 80
   protocol    = "HTTP"
   vpc_id      = data.aws_vpc.default.id
@@ -132,14 +132,14 @@ resource "aws_lb_target_group" "app" {
 }
 
 # Listener for ALB
-resource "aws_lb_listener" "app" {
-  load_balancer_arn = aws_lb.app.arn
+resource "aws_lb_listener" "timechain-backend" {
+  load_balancer_arn = aws_lb.timechain-backend.arn
   port              = "80"
   protocol          = "HTTP"
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.app.arn
+    target_group_arn = aws_lb_target_group.timechain-backend.arn
   }
 }
 
@@ -158,10 +158,10 @@ resource "aws_ecs_service" "timechain" {
   }
 
   load_balancer {
-    target_group_arn = aws_lb_target_group.app.arn
+    target_group_arn = aws_lb_target_group.timechain-backend.arn
     container_name   = "timechain-backend" # must match container_definitions
     container_port   = 80
   }
 
-  depends_on = [aws_lb_listener.app]
+  depends_on = [aws_lb_listener.timechain-backend]
 }
