@@ -144,7 +144,7 @@ resource "aws_lb_listener" "timechain-backend" {
 }
 
 # ECS Service
-resource "aws_ecs_service" "timechain" {
+resource "aws_ecs_service" "timechain-backend" {
   name            = "timechain-backend-service"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.timechain.arn
