@@ -17,3 +17,6 @@ wheels/
 
 # todos
 todo.txt
+
+# env variables
+variables.env

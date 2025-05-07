@@ -64,7 +64,8 @@ jobs:
       - name: run terraform
         env:
           IMAGE_TAG: ${{needs.build.outputs.image_tag}}
+          ENDPOINT_URL: ${{secrets.BLAST_RPC_URL}}
         run: |
           cd deploy-aws
           terraform init -input=false
-          terraform apply -input=false -auto-approve -var="image_tag=$IMAGE_TAG"
+          terraform apply -input=false -auto-approve -var="image_tag=$IMAGE_TAG" -var="endpoint_url=$ENDPOINT_URL"

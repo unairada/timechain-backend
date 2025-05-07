@@ -12,11 +12,15 @@ class GetTxFeesResponseModel(BaseModel):
     txid:       str
     input_btc:  float
     output_btc: float
-    fees:       float
+    fees:       int
 
+class FeeEstimateResponseModel(BaseModel):
+    target_blocks:  int
+    estimated_fee_BTC_per_kvB: float
+    estimated_fee_sats_per_vB: int
 
-@router.get("/fee-estimate")
-async def fee_estimate(blocks: int=1):
+@router.get("/fee-estimate", response_model=FeeEstimateResponseModel)
+async def fee_estimate(blocks: int=1) -> FeeEstimateResponseModel:
     """
     Estimate fee to confirm in `blocks` number of blocks,
     returning sats/vByte instead of BTC/vkB.
@@ -34,11 +38,11 @@ async def fee_estimate(blocks: int=1):
     #Convert BTC/vKByte to sats/vbyte
     feerate_sats_per_vbyte : float = feerate_btc_per_kb * 100_000 # 1 btc = 100_000_000 sats and 1 kb = 1000 bytes
 
-    return {
-        "target_blocks" : result.get("blocks"),
-        "estimated_fee_BTC/vkB": feerate_btc_per_kb,
-        "estimated_fee_sats/vB": round(feerate_sats_per_vbyte)
-    }
+    return FeeEstimateResponseModel(
+        target_blocks = result.get("blocks"),
+        estimated_fee_BTC_per_kvB =  feerate_btc_per_kb,
+        estimated_fee_sats_per_vB = round(feerate_sats_per_vbyte)
+    )
 
 
 @router.get("/get-tx-fees/{txid}", response_model=GetTxFeesResponseModel)

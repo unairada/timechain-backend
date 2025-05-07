@@ -11,6 +11,12 @@ variable "image_tag" {
     default = "e53a2be388ff9c319aac99b58a02aafa690cfc2a"
 }
 
+variable "endpoint_url" {
+    type = string
+    description = "URL of the Endpoint API for the Bitcoin Blockchain"
+    default = "https://bitcoin-mainnet.public.blastapi.io"
+}
+
 
 data "aws_vpc" "default" {
   default = true
@@ -141,6 +147,9 @@ resource "aws_ecs_task_definition" "timechain" {
     {
       name         = "timechain-backend"
       image        = "${var.ecr_repository_url}:${var.image_tag}"
+      environment  = [
+      {name =  "BLAST_RPC_URL", value = var.endpoint_url}
+    ]
     #   image        = "782046927010.dkr.ecr.us-east-2.amazonaws.com/timechain-backend:e53a2be388ff9c319aac99b58a02aafa690cfc2a" # TODO: point to your ECR repo
       portMappings = [{ containerPort = 80, protocol = "tcp" }]
       essential    = true
