@@ -1,9 +1,13 @@
 
 variable "ecr_repository_url" {
+    type = string
+    description = "ECR Repository of the timechain-backend application"
     default = "782046927010.dkr.ecr.us-east-2.amazonaws.com/timechain-backend"
 }
 
 variable "image_tag" {
+    type = string
+    description = "Tag of the image to be deployed with ECS"
     default = "e53a2be388ff9c319aac99b58a02aafa690cfc2a"
 }
 
@@ -38,6 +42,46 @@ resource "aws_security_group" "alb_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
+
+# Application Load Balancer
+resource "aws_lb" "timechain-backend" {
+  name               = "timechain-backend-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.alb_sg.id]
+  subnets            = data.aws_subnets.default.ids
+}
+
+# Target Group for ECS
+resource "aws_lb_target_group" "timechain-backend" {
+  name        = "timechain-backend-tg"
+  port        = 80
+  protocol    = "HTTP"
+  vpc_id      = data.aws_vpc.default.id
+  target_type = "ip"
+
+  health_check {
+    path                = "/"
+    protocol            = "HTTP"
+    matcher             = "200-399"
+    interval            = 30
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+# Listener for ALB
+resource "aws_lb_listener" "timechain-backend" {
+  load_balancer_arn = aws_lb.timechain-backend.arn
+  port              = "80"
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.timechain-backend.arn
+  }
+}
+
 
 # Security Group for ECS tasks (only allow traffic from ALB)
 resource "aws_security_group" "ecs_task_sg" {
@@ -102,45 +146,6 @@ resource "aws_ecs_task_definition" "timechain" {
       essential    = true
     }
   ])
-}
-
-# Application Load Balancer
-resource "aws_lb" "timechain-backend" {
-  name               = "timechain-backend-alb"
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb_sg.id]
-  subnets            = data.aws_subnets.default.ids
-}
-
-# Target Group for ECS
-resource "aws_lb_target_group" "timechain-backend" {
-  name        = "timechain-backend-tg"
-  port        = 80
-  protocol    = "HTTP"
-  vpc_id      = data.aws_vpc.default.id
-  target_type = "ip"
-
-  health_check {
-    path                = "/"
-    protocol            = "HTTP"
-    matcher             = "200-399"
-    interval            = 30
-    healthy_threshold   = 2
-    unhealthy_threshold = 2
-  }
-}
-
-# Listener for ALB
-resource "aws_lb_listener" "timechain-backend" {
-  load_balancer_arn = aws_lb.timechain-backend.arn
-  port              = "80"
-  protocol          = "HTTP"
-
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.timechain-backend.arn
-  }
 }
 
 # ECS Service

@@ -23,9 +23,6 @@ async def call_rpc(method: str, params: list = []):
             raise HTTPException(status_code=502, detail=data["error"])
         return data["result"]
 
-# def to_sats_vbyte(feerate_btc_per_kb: float) -> float:
-
-#     return feerate_btc_per_kb * 100000
 
 def main():
     print("Hello from timechain-backend!")
@@ -40,6 +37,9 @@ async def fee_estimate(blocks: int=1):
     Estimate fee to confirm in `blocks` number of blocks,
     returning sats/vByte instead of BTC/vkB.
     """
+    if blocks > 1008:
+        raise HTTPException(status_code=502, detail="Max target block value is 1008. Please use a smaller target block value")
+    
     result : dict = await call_rpc("estimatesmartfee", [blocks])
     feerate_btc_per_kb : float = result.get("feerate")
     if feerate_btc_per_kb is None:
