@@ -17,6 +17,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        
+      - name: ruff check
+        uses: astral-sh/ruff-action@v3
 
       - name: Setup AWS account creds
         uses: aws-actions/configure-aws-credentials@v4
